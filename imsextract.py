@@ -3,10 +3,19 @@ from xml.etree import ElementTree as ET
 import os
 from pathlib import Path
 import shutil
+import unicodedata
+import string
+
+validFilenameChars = "-_.() %s%s" % (string.ascii_letters, string.digits)
+
+def removeDisallowedFilenameChars(filename):
+    cleanedFilename = unicodedata.normalize('NFKD', filename).encode('ASCII', 'ignore')
+    return ''.join(c for c in cleanedFilename if c in validFilenameChars)
+
 
 resdict = {}
 
-
+FILENAME = 'tom.zip'
 #
 # walk through xml tree "folder"
 #
@@ -18,7 +27,7 @@ resdict = {}
 def do_folder(folder, path):
 
     print "DEBUG: entering do_folder(). old path=", path
-    title = folder[0].text
+    title = removeDisallowedFilenameChars(unicode(folder[0].text))
     new_path = path / title # add subfolder to path
     print 'creating directory: ', str(new_path)
     new_path.mkdir() # create directory
@@ -51,7 +60,7 @@ if __name__ == '__main__':
 
     global zipfile
 
-    with zipfile.ZipFile('Export_Biologie_klas_5_2014-11-07.zip','r') as zipfile:
+    with zipfile.ZipFile(FILENAME,'r') as zipfile:
 
         for x in zipfile.namelist():
             index = x.find('imsmanifest.xml')
@@ -80,7 +89,8 @@ if __name__ == '__main__':
         for r in resources:
             # identifiers zien er zo uit: 'R_rYTieTdHa_folderfile_42508'
             # we hebben alleen het laatste getal nodig
-            resdict[r.get('identifier').split('_folderfile_')[1]] = r.get('href')
+            if '_folderfile_' in r.get('identifier'):
+                resdict[r.get('identifier').split('_folderfile_')[1]] = r.get('href')
 
         #
         # Doorloop de XML boom
