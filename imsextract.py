@@ -80,6 +80,18 @@ def do_folder(folder, path):
             doel.write('\n')
             doel.close()
 
+        if '_note_' in id:              # item is note. Extract
+            idval = id.split('_note_')[1]
+
+            title = f[0].text # get title from <items>
+            bestandsnaam = removeDisallowedFilenameChars(unicode(title+'.html'))
+            print 'extracting note: ',bestandsnaam
+
+            # Brute force, open file, write file:
+            bron = zipfile.open(resdict[idval])
+            doel = open(str(new_path / bestandsnaam), "wb")
+            with bron, doel:
+                shutil.copyfileobj(bron, doel)
 
 
 if __name__ == '__main__':
@@ -88,6 +100,7 @@ if __name__ == '__main__':
 
     with zipfile.ZipFile(FILENAME,'r') as zipfile:
 
+        # Zoek het manifest en lees de XML tree
         for x in zipfile.namelist():
             index = x.find('imsmanifest.xml')
             if index != -1:
@@ -104,8 +117,12 @@ if __name__ == '__main__':
         # haal die eerst op:
         namespace = root.tag[1:].split("}")[0] #extract namespace from xml file
 
-        org = root.findall(".//{%s}organisations" % namespace)
-        items = root.findall(".//{%s}item" % namespace)
+        #
+        # Maak lijsten van XML items. Gebruikt voor development
+        # Alleen resources (<resources>) is nodig in de rest van de code
+        #
+        org = root.findall(".//{%s}organisations" % namespace) # for development
+        items = root.findall(".//{%s}item" % namespace) # for development
         resources = root.findall(".//{%s}resource" % namespace)
 
         #
@@ -119,7 +136,8 @@ if __name__ == '__main__':
                 resdict[r.get('identifier').split('_folderfile_')[1]] = r.get('href')
             if '_weblink_' in r.get('identifier'):
                 resdict[r.get('identifier').split('_weblink_')[1]] = r.get('href')
-
+            if '_note_' in r.get('identifier'):
+                resdict[r.get('identifier').split('_note_')[1]] = r.get('href')
         #
         # Doorloop de XML boom zodat we bij het beginpunt van de <items> aankomen
         #
