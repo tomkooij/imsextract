@@ -80,7 +80,7 @@ def do_folder(folder, path):
             doel.write('\n')
             doel.close()
 
-        if '_note_' in id:              # item is note. Extract
+        if '_note_' in id:              # item is note. Extract html contents
             idval = id.split('_note_')[1]
 
             title = f[0].text # get title from <items>
@@ -92,6 +92,49 @@ def do_folder(folder, path):
             doel = open(str(new_path / bestandsnaam), "wb")
             with bron, doel:
                 shutil.copyfileobj(bron, doel)
+
+        if '_note_' in id:              # item is picture. Extract
+            idval = id.split('_note_')[1]
+
+            title = f[0].text # get title from <items>
+            bestandsnaam = removeDisallowedFilenameChars(unicode(title+'.html'))
+            print 'extracting note: ',bestandsnaam
+
+            # Brute force, open file, write file:
+            bron = zipfile.open(resdict[idval])
+            doel = open(str(new_path / bestandsnaam), "wb")
+            with bron, doel:
+                shutil.copyfileobj(bron, doel)
+
+        if '_picture_' in id:              # item is image. Extract
+
+            idval = id.split('_picture_')[1]
+            bestandsnaam = resdict[idval][1].split('/')[1]
+            folder_in_zip = resdict[idval][0].split('/')[0]
+
+            print 'extracting image: ',bestandsnaam
+
+            # The correct imagefile is NOT in the <rescources> dict.
+            #  Images are renamed and an .html container is used
+
+            # get .html and recover imagefilename (sigh!)
+            htmlfile = zipfile.open(resdict[idval][0])
+            lines = htmlfile.readlines()
+
+            for line in lines:
+                x = line.find('src=')
+                if (x != -1):
+                    imagefilename = line[x:x+20].split('\'')[1]
+                    print "reconstructed imagefilename (in zip): ", imagefilename
+
+            bestandsnaam_in_zip = folder_in_zip + '/' + imagefilename
+
+            # Brute force, open file, write file:
+            bron = zipfile.open(bestandsnaam_in_zip)
+            doel = open(str(new_path / bestandsnaam), "wb")
+            with bron, doel:
+                shutil.copyfileobj(bron, doel)
+
 
 
 if __name__ == '__main__':
@@ -138,6 +181,10 @@ if __name__ == '__main__':
                 resdict[r.get('identifier').split('_weblink_')[1]] = r.get('href')
             if '_note_' in r.get('identifier'):
                 resdict[r.get('identifier').split('_note_')[1]] = r.get('href')
+            if '_picture_' in r.get('identifier'):
+                # _picture_ has two items. [0] = html container [1] = actual imagefile
+                # as the actual imagefilename is *not* the archivefilename, we use the html to recover filename
+                resdict[r.get('identifier').split('_picture_')[1]] = [r[0].get('href') , r[1].get('href')]
         #
         # Doorloop de XML boom zodat we bij het beginpunt van de <items> aankomen
         #
