@@ -30,25 +30,32 @@ def do_folder(folder, path):
     print "DEBUG: entering do_folder(). old path=", path
     title = removeDisallowedFilenameChars(unicode(folder[0].text))
     new_path = path / title # add subfolder to path
-    print 'creating directory: ', str(new_path)
-    new_path.mkdir() # create directory
+    if not new_path.exists():
+        print 'creating directory: ', str(new_path)
+        new_path.mkdir() # create directory
+    else:
+        print 'chdir into existing directory:', str(new_path)
+
     new_path.resolve() # change dir
-    files = folder[1:]
+
+    files = folder[1:]  # files is list of files and subfolders in this folder
 
     for f in files:
 #        print 'file: ',f.attrib
         # is this file a folder?
         # if it is the identifier contains '_folder_'
         id = f.get('identifier')
-        if '_folder_' in id:
+
+        if '_folder_' in id:                  # item is subfolder! branch into
             subfolder = f.getchildren()
             do_folder(subfolder,new_path)
-        if '_folderfile_' in id:
+
+        if '_folderfile_' in id:              # item is file. Extract
             # identifiers zien er zo uit: 'I_rYTieTdHa_folderfile_42508'
             # we hebben alleen het getal nodig
             idval = id.split('_folderfile_')[1]
             bestandsnaam = resdict[idval].split('/')[1]
-            print "bestand: ",bestandsnaam
+            print 'extracting file: ',bestandsnaam
             # WERKT NIET submappen blijven ervoor
             # zipfile.extract(resdict[idval],str(new_path)) # extract file in current dir
             # Brute force, open file, write file:
@@ -56,6 +63,24 @@ def do_folder(folder, path):
             doel = open(str(new_path / bestandsnaam), "wb")
             with bron, doel:
                 shutil.copyfileobj(bron, doel)
+
+        if '_weblink_' in id:              # item is weblink. Extract
+            idval = id.split('_weblink_')[1]
+            url = resdict[idval] # get url from resource dict
+
+            title = f[0].text # get title from <items>
+
+            bestandsnaam = removeDisallowedFilenameChars(unicode(title+'.url'))
+            print 'extracting weblink: ',bestandsnaam
+
+            # .url file just a txt file with [Internet Shortcut]. Clickable in windows
+            doel = open(str(new_path / bestandsnaam), "wb")
+            doel.write('[InternetShortcut]\n')
+            doel.write(url)
+            doel.write('\n')
+            doel.close()
+
+
 
 if __name__ == '__main__':
 
@@ -92,7 +117,8 @@ if __name__ == '__main__':
             # we hebben alleen het laatste getal nodig
             if '_folderfile_' in r.get('identifier'):
                 resdict[r.get('identifier').split('_folderfile_')[1]] = r.get('href')
-
+            if '_weblink_' in r.get('identifier'):
+                resdict[r.get('identifier').split('_weblink_')[1]] = r.get('href')
         #
         # Doorloop de XML boom
         #
