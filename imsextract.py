@@ -6,8 +6,9 @@ import shutil
 import unicodedata
 import string
 
+# remove illegal chars from filename/dirname
+# source: http://stackoverflow.com/questions/295135/turn-a-string-into-a-valid-filename-in-python
 validFilenameChars = "-_.() %s%s" % (string.ascii_letters, string.digits)
-
 def removeDisallowedFilenameChars(filename):
     cleanedFilename = unicodedata.normalize('NFKD', filename).encode('ASCII', 'ignore')
     return ''.join(c for c in cleanedFilename if c in validFilenameChars)
