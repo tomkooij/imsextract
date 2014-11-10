@@ -1,5 +1,5 @@
 import zipfile
-from xml.etree import ElementTree as ET
+from xml.etree import ElementTree
 import os
 from pathlib import Path
 import shutil
@@ -27,7 +27,7 @@ FILENAME = 'tom.zip'
 #
 def do_folder(folder, path):
 
-    print "DEBUG: entering do_folder(). old path=", path
+    #print "DEBUG: entering do_folder(). old path=", path
     title = removeDisallowedFilenameChars(unicode(folder[0].text))
     new_path = path / title # add subfolder to path
     if not new_path.exists():
@@ -96,7 +96,7 @@ if __name__ == '__main__':
                 manifest = zipfile.read(x)
                 #print manifest
 
-        root = ET.fromstring(manifest)
+        root = ElementTree.fromstring(manifest)
 
         # de volgende code is geinspireerd door:
         #    http://trac.lliurex.net/pandora/browser/simple-scorm-player
@@ -119,15 +119,18 @@ if __name__ == '__main__':
                 resdict[r.get('identifier').split('_folderfile_')[1]] = r.get('href')
             if '_weblink_' in r.get('identifier'):
                 resdict[r.get('identifier').split('_weblink_')[1]] = r.get('href')
+
         #
-        # Doorloop de XML boom
+        # Doorloop de XML boom zodat we bij het beginpunt van de <items> aankomen
         #
+        # voodoo:
         organisations = root.getchildren()[0]
         main = organisations.getchildren()[0]
         rootfolder = main.getchildren()
 
+        curpath = Path('.') # high level Path object (windows/posix/osx)
+        rootpath = curpath  # extract in current dir
+
         # rootfolder is een lijst[] met items
         # loop deze (recursief door. Maak (sub)mappen en extract bestanden)
-        curpath = Path('.') # high level Path object (windows/posix/osx)
-        rootpath = curpath / 'testdir' # do je ding in een test map
         do_folder(rootfolder, rootpath)
