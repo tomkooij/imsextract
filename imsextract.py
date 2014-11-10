@@ -1,3 +1,23 @@
+"""
+imsextract
+
+Reconstrueer mappen en bestanden uit een It's Learning export (SCORM IMSContent)
+
+reconstrueert: folder, file, image, note
+geen ondersteuning voor: essay (ingeleverde opdrachten)
+
+Tom Kooij, 10 november 2014
+
+zie: http://github.com/tomkooij/imsextract
+
+OPMERKINGEN:
+- Alleen getest op Windows 7. Zou ook onder MAC OSX en POSIX moeten werken
+- Er is GEEN ENKELE foutcontrole
+- Mapnamen kunnen langer worden dan Windows toestaat. Gebruik vanuit C:\TEMP (een map met een kort eigen path)
+
+
+"""
+
 import zipfile
 from xml.etree import ElementTree
 import os
