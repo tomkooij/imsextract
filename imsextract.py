@@ -113,18 +113,6 @@ def do_folder(folder, path):
             with bron, doel:
                 shutil.copyfileobj(bron, doel)
 
-        if '_note_' in id:              # item is picture. Extract
-            idval = id.split('_note_')[1]
-
-            title = f[0].text # get title from <items>
-            bestandsnaam = removeDisallowedFilenameChars(unicode(title+'.html'))
-            print 'extracting note: ',bestandsnaam
-
-            # Brute force, open file, write file:
-            bron = zipfile.open(resdict[idval])
-            doel = open(str(new_path / bestandsnaam), "wb")
-            with bron, doel:
-                shutil.copyfileobj(bron, doel)
 
         if '_picture_' in id:              # item is image. Extract
 
