@@ -75,7 +75,7 @@ def do_folder(folder, path):
 
             # .url file just a txt file with [Internet Shortcut]. Clickable in windows
             doel = open(str(new_path / bestandsnaam), "wb")
-            doel.write('[InternetShortcut]\n')
+            doel.write('[InternetShortcut]\nURL=')
             doel.write(url)
             doel.write('\n')
             doel.close()
