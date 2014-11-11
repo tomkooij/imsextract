@@ -21,6 +21,7 @@ OPMERKINGEN:
 import zipfile
 from xml.etree import ElementTree
 import os
+import sys
 from pathlib import Path
 import shutil
 import unicodedata
@@ -33,9 +34,6 @@ def removeDisallowedFilenameChars(filename):
     cleanedFilename = unicodedata.normalize('NFKD', filename).encode('ASCII', 'ignore')
     return ''.join(c for c in cleanedFilename if c in validFilenameChars)
 
-
-
-FILENAME = 'tom.zip'
 
 def extract_imsfile(filename, destination_path):
 
@@ -156,66 +154,113 @@ def extract_imsfile(filename, destination_path):
     #
     # START
     #
-    global zipfile
-    with zipfile.ZipFile(filename,'r') as zipfile:
+    global zipfile # zipfile is used in do_folder()
 
-        # Zoek het manifest en lees de XML tree
-        for x in zipfile.namelist():
-            index = x.find('imsmanifest.xml')
-            if index != -1:
-                fullpath = x[:index]
-                print "FOUND", x, fullpath
-                manifest = zipfile.read(x)
-                #print manifest
+    try:
+        with zipfile.ZipFile(filename,'r') as zipfile:
 
-        root = ElementTree.fromstring(manifest)
+            # Zoek het manifest en lees de XML tree
+            # for x in zipfile.namelist():
+            #     index = x.find('imsmanifest.xml')
+            #     if index != -1:
+            #         fullpath = x[:index]
+            #         manifest = zipfile.read(x)
+            #
+            #     else:
+            try:
+                manifest = zipfile.read('imsmanifest.xml')
+            except KeyError:
+                print 'imsmanifest.xml not found in zip. Bad export?'
+                return False
 
-        # de volgende code is geinspireerd door:
-        #    http://trac.lliurex.net/pandora/browser/simple-scorm-player
-        # de xml tags worden voorafgenaam door {http://www.w3... blaat}
-        # haal die eerst op:
-        namespace = root.tag[1:].split("}")[0] #extract namespace from xml file
+            root = ElementTree.fromstring(manifest)
 
-        #
-        # Maak lijsten van XML items. Gebruikt voor development
-        # Alleen resources (<resources>) is nodig in de rest van de code
-        #
-        org = root.findall(".//{%s}organisations" % namespace) # for development
-        items = root.findall(".//{%s}item" % namespace) # for development
-        resources = root.findall(".//{%s}resource" % namespace)
+            # de volgende code is geinspireerd door:
+            #    http://trac.lliurex.net/pandora/browser/simple-scorm-player
+            # de xml tags worden voorafgenaam door {http://www.w3... blaat}
+            # haal die eerst op:
+            namespace = root.tag[1:].split("}")[0] #extract namespace from xml file
 
-        #
-        # Maak een dict met alle <resource> (bestanden)
-        #
-        # resdict is global
-        for r in resources:
-            # identifiers zien er zo uit: 'R_rYTieTdHa_folderfile_42508'
-            # we hebben alleen het laatste getal nodig
-            if '_folderfile_' in r.get('identifier'):
-                resdict[r.get('identifier').split('_folderfile_')[1]] = r.get('href')
-            if '_weblink_' in r.get('identifier'):
-                resdict[r.get('identifier').split('_weblink_')[1]] = r.get('href')
-            if '_note_' in r.get('identifier'):
-                resdict[r.get('identifier').split('_note_')[1]] = r.get('href')
-            if '_picture_' in r.get('identifier'):
-                # _picture_ has two items. [0] = html container [1] = actual imagefile
-                # as the actual imagefilename is *not* the archivefilename, we use the html to recover filename
-                resdict[r.get('identifier').split('_picture_')[1]] = [r[0].get('href') , r[1].get('href')]
-        #
-        # Doorloop de XML boom zodat we bij het beginpunt van de <items> aankomen
-        #
-        # voodoo:
-        organisations = root.getchildren()[0]
-        main = organisations.getchildren()[0]
-        rootfolder = main.getchildren()
+            #
+            # Maak lijsten van XML items. Gebruikt voor development
+            # Alleen resources (<resources>) is nodig in de rest van de code
+            #
+            org = root.findall(".//{%s}organisations" % namespace) # for development
+            items = root.findall(".//{%s}item" % namespace) # for development
+            resources = root.findall(".//{%s}resource" % namespace)
 
-        rootpath = Path(destination_path) # high level Path object (windows/posix/osx)
+            #
+            # Maak een dict met alle <resource> (bestanden)
+            #
+            # resdict is global
+            for r in resources:
+                # identifiers zien er zo uit: 'R_rYTieTdHa_folderfile_42508'
+                # we hebben alleen het laatste getal nodig
+                if '_folderfile_' in r.get('identifier'):
+                    resdict[r.get('identifier').split('_folderfile_')[1]] = r.get('href')
+                if '_weblink_' in r.get('identifier'):
+                    resdict[r.get('identifier').split('_weblink_')[1]] = r.get('href')
+                if '_note_' in r.get('identifier'):
+                    resdict[r.get('identifier').split('_note_')[1]] = r.get('href')
+                if '_picture_' in r.get('identifier'):
+                    # _picture_ has two items. [0] = html container [1] = actual imagefile
+                    # as the actual imagefilename is *not* the archivefilename, we use the html to recover filename
+                    resdict[r.get('identifier').split('_picture_')[1]] = [r[0].get('href') , r[1].get('href')]
+            #
+            # Doorloop de XML boom zodat we bij het beginpunt van de <items> aankomen
+            #
+            # voodoo:
+            organisations = root.getchildren()[0]
+            main = organisations.getchildren()[0]
+            rootfolder = main.getchildren()
 
-        # rootfolder is een lijst[] met items
-        # loop deze (recursief door. Maak (sub)mappen en extract bestanden)
-        do_folder(rootfolder, rootpath)
+            destpath = Path(destination_path) # high level Path object (windows/posix/osx)
 
-        return True
+            # rootfolder is een lijst[] met items
+            # loop deze (recursief door. Maak (sub)mappen en extract bestanden)
+            do_folder(rootfolder, destpath)
+            return True
+
+    except IOError:
+        print('IOError: File not found?')
+
+    return False
+    
+def print_usage_and_exit():
+    print 'Usage: imsextract inputfile <outputpath>'
+    print 'examples:\nimsextract export.zip    - extract to current folder'
+    print 'imsextract export.zip D:\yourfolder  - extract to specified folder'
+    sys.exit(0)
 
 if __name__ == '__main__':
-    extract_imsfile(FILENAME, '.')
+
+    print 'imsextract - Extract Its Learning IMSContent SCORM package\n'
+
+    path = Path('.')  # default path
+
+    arg = sys.argv   # get command line arguments
+    # arg[0] == filename
+    # arg[1] == first argument etc
+
+    if len(arg)==1:
+        print_usage_and_exit()
+
+    if (arg[1][0] == '-'):
+        print_usage_and_exit()
+
+    if len(arg)>=2:
+        filename = str(arg[1])
+        path = '.'
+        if len(arg)==3:
+            path = Path(str(arg[2]))
+            if not path.exists():
+                print 'creating directory: ', str(path)
+                path.mkdir() # create directory
+        #
+        # DO IT!
+        #
+        extract_imsfile(filename, path)
+    else:
+        print_usage_and_exit()
+
+#EOF
