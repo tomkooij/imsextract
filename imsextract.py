@@ -249,7 +249,7 @@ if __name__ == '__main__':
 
     if len(arg)>=2:
         filename = str(arg[1])
-        path = '.'
+        # path already at default, set if specified at command line:
         if len(arg)==3:
             path = Path(str(arg[2]))
             if not path.exists():
