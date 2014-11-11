@@ -233,8 +233,8 @@ def print_usage_and_exit():
 
 if __name__ == '__main__':
 
-    print 'imsextract - Extract Its Learning IMSContent SCORM package\n'
-    print 'Get the source at: http://github.com/tomkooij/imsextract'
+    print 'imsextract - Extract Its Learning IMSContent SCORM package'
+    print 'Get the source at: http://github.com/tomkooij/imsextract\n'
     path = Path('.')  # default path
 
     arg = sys.argv   # get command line arguments
