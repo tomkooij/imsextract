@@ -160,13 +160,6 @@ def extract_imsfile(filename, destination_path):
         with zipfile.ZipFile(filename,'r') as zipfile:
 
             # Zoek het manifest en lees de XML tree
-            # for x in zipfile.namelist():
-            #     index = x.find('imsmanifest.xml')
-            #     if index != -1:
-            #         fullpath = x[:index]
-            #         manifest = zipfile.read(x)
-            #
-            #     else:
             try:
                 manifest = zipfile.read('imsmanifest.xml')
             except KeyError:
