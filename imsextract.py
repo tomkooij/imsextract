@@ -223,9 +223,8 @@ def extract_imsfile(filename, destination_path):
 
     except IOError:
         print('IOError: File not found?')
-
     return False
-    
+
 def print_usage_and_exit():
     print 'Usage: imsextract inputfile <outputpath>'
     print 'examples:\nimsextract export.zip    - extract to current folder'
@@ -235,7 +234,7 @@ def print_usage_and_exit():
 if __name__ == '__main__':
 
     print 'imsextract - Extract Its Learning IMSContent SCORM package\n'
-
+    print 'Get the source at: http://github.com/tomkooij/imsextract'
     path = Path('.')  # default path
 
     arg = sys.argv   # get command line arguments
