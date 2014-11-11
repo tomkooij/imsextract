@@ -34,122 +34,130 @@ def removeDisallowedFilenameChars(filename):
     return ''.join(c for c in cleanedFilename if c in validFilenameChars)
 
 
-resdict = {}
 
 FILENAME = 'tom.zip'
-#
-# walk through xml tree "folder"
-#
-# RECURSIVE FUNCTION!
-#
-# folder = list of elementree items
-# path = pathlib Path object "the current path"
-#
-def do_folder(folder, path):
 
-    #print "DEBUG: entering do_folder(). old path=", path
-    title = removeDisallowedFilenameChars(unicode(folder[0].text))
-    new_path = path / title # add subfolder to path
-    if not new_path.exists():
-        print 'creating directory: ', str(new_path)
-        new_path.mkdir() # create directory
-    else:
-        print 'chdir into existing directory:', str(new_path)
+def extract_imsfile(filename, destination_path):
 
-    new_path.resolve() # change dir
-
-    files = folder[1:]  # files is list of files and subfolders in this folder
-
-    for f in files:
-#        print 'file: ',f.attrib
-        # is this file a folder?
-        # if it is the identifier contains '_folder_'
-        id = f.get('identifier')
-
-        if '_folder_' in id:                  # item is subfolder! branch into
-            subfolder = f.getchildren()
-            do_folder(subfolder,new_path)
-
-        if '_folderfile_' in id:              # item is file. Extract
-            # identifiers zien er zo uit: 'I_rYTieTdHa_folderfile_42508'
-            # we hebben alleen het getal nodig
-            idval = id.split('_folderfile_')[1]
-            bestandsnaam = resdict[idval].split('/')[1]
-            print 'extracting file: ',bestandsnaam
-            # WERKT NIET submappen blijven ervoor
-            # zipfile.extract(resdict[idval],str(new_path)) # extract file in current dir
-            # Brute force, open file, write file:
-            bron = zipfile.open(resdict[idval])
-            doel = open(str(new_path / bestandsnaam), "wb")
-            with bron, doel:
-                shutil.copyfileobj(bron, doel)
-
-        if '_weblink_' in id:              # item is weblink. Extract
-            idval = id.split('_weblink_')[1]
-            url = resdict[idval] # get url from resource dict
-
-            title = f[0].text # get title from <items>
-
-            bestandsnaam = removeDisallowedFilenameChars(unicode(title+'.url'))
-            print 'extracting weblink: ',bestandsnaam
-
-            # .url file just a txt file with [Internet Shortcut]. Clickable in windows
-            doel = open(str(new_path / bestandsnaam), "wb")
-            doel.write('[InternetShortcut]\nURL=')
-            doel.write(url)
-            doel.write('\n')
-            doel.close()
-
-        if '_note_' in id:              # item is note. Extract html contents
-            idval = id.split('_note_')[1]
-
-            title = f[0].text # get title from <items>
-            bestandsnaam = removeDisallowedFilenameChars(unicode(title+'.html'))
-            print 'extracting note: ',bestandsnaam
-
-            # Brute force, open file, write file:
-            bron = zipfile.open(resdict[idval])
-            doel = open(str(new_path / bestandsnaam), "wb")
-            with bron, doel:
-                shutil.copyfileobj(bron, doel)
+    # dictionary to store <resource> information (location of files in zipfile)
+    resdict = {}
 
 
-        if '_picture_' in id:              # item is image. Extract
+    #
+    # walk through xml tree "folder"
+    #
+    # RECURSIVE FUNCTION!
+    #
+    # folder = list of elementree items
+    # path = pathlib Path object "the current path"
+    #
+    def do_folder(folder, path):
 
-            idval = id.split('_picture_')[1]
-            bestandsnaam = resdict[idval][1].split('/')[1]
-            folder_in_zip = resdict[idval][0].split('/')[0]
+        #print "DEBUG: entering do_folder(). old path=", path
+        title = removeDisallowedFilenameChars(unicode(folder[0].text))
+        new_path = path / title # add subfolder to path
+        if not new_path.exists():
+            print 'creating directory: ', str(new_path)
+            new_path.mkdir() # create directory
+        else:
+            print 'chdir into existing directory:', str(new_path)
 
-            print 'extracting image: ',bestandsnaam
+        new_path.resolve() # change dir
 
-            # The correct imagefile is NOT in the <rescources> dict.
-            #  Images are renamed and an .html container is used
+        files = folder[1:]  # files is list of files and subfolders in this folder
 
-            # get .html and recover imagefilename (sigh!)
-            htmlfile = zipfile.open(resdict[idval][0])
-            lines = htmlfile.readlines()
+        for f in files:
+    #        print 'file: ',f.attrib
+            # is this file a folder?
+            # if it is the identifier contains '_folder_'
+            id = f.get('identifier')
 
-            for line in lines:
-                x = line.find('src=')
-                if (x != -1):
-                    imagefilename = line[x:x+20].split('\'')[1]
-                    print "reconstructed imagefilename (in zip): ", imagefilename
+            if '_folder_' in id:                  # item is subfolder! branch into
+                subfolder = f.getchildren()
+                do_folder(subfolder,new_path)
 
-            bestandsnaam_in_zip = folder_in_zip + '/' + imagefilename
+            if '_folderfile_' in id:              # item is file. Extract
+                # identifiers zien er zo uit: 'I_rYTieTdHa_folderfile_42508'
+                # we hebben alleen het getal nodig
+                idval = id.split('_folderfile_')[1]
+                bestandsnaam = resdict[idval].split('/')[1]
+                print 'extracting file: ',bestandsnaam
+                # WERKT NIET submappen blijven ervoor
+                # zipfile.extract(resdict[idval],str(new_path)) # extract file in current dir
+                # Brute force, open file, write file:
+                bron = zipfile.open(resdict[idval])
+                doel = open(str(new_path / bestandsnaam), "wb")
+                with bron, doel:
+                    shutil.copyfileobj(bron, doel)
 
-            # Brute force, open file, write file:
-            bron = zipfile.open(bestandsnaam_in_zip)
-            doel = open(str(new_path / bestandsnaam), "wb")
-            with bron, doel:
-                shutil.copyfileobj(bron, doel)
+            if '_weblink_' in id:              # item is weblink. Extract
+                idval = id.split('_weblink_')[1]
+                url = resdict[idval] # get url from resource dict
+
+                title = f[0].text # get title from <items>
+
+                bestandsnaam = removeDisallowedFilenameChars(unicode(title+'.url'))
+                print 'extracting weblink: ',bestandsnaam
+
+                # .url file just a txt file with [Internet Shortcut]. Clickable in windows
+                doel = open(str(new_path / bestandsnaam), "wb")
+                doel.write('[InternetShortcut]\nURL=')
+                doel.write(url)
+                doel.write('\n')
+                doel.close()
+
+            if '_note_' in id:              # item is note. Extract html contents
+                idval = id.split('_note_')[1]
+
+                title = f[0].text # get title from <items>
+                bestandsnaam = removeDisallowedFilenameChars(unicode(title+'.html'))
+                print 'extracting note: ',bestandsnaam
+
+                # Brute force, open file, write file:
+                bron = zipfile.open(resdict[idval])
+                doel = open(str(new_path / bestandsnaam), "wb")
+                with bron, doel:
+                    shutil.copyfileobj(bron, doel)
 
 
+            if '_picture_' in id:              # item is image. Extract
 
-if __name__ == '__main__':
+                idval = id.split('_picture_')[1]
+                bestandsnaam = resdict[idval][1].split('/')[1]
+                folder_in_zip = resdict[idval][0].split('/')[0]
 
+                print 'extracting image: ',bestandsnaam
+
+                # The correct imagefile is NOT in the <rescources> dict.
+                #  Images are renamed and an .html container is used
+
+                # get .html and recover imagefilename (sigh!)
+                htmlfile = zipfile.open(resdict[idval][0])
+                lines = htmlfile.readlines()
+
+                for line in lines:
+                    x = line.find('src=')
+                    if (x != -1):
+                        imagefilename = line[x:x+20].split('\'')[1]
+                        print "reconstructed imagefilename (in zip): ", imagefilename
+
+                bestandsnaam_in_zip = folder_in_zip + '/' + imagefilename
+
+                # Brute force, open file, write file:
+                bron = zipfile.open(bestandsnaam_in_zip)
+                doel = open(str(new_path / bestandsnaam), "wb")
+                with bron, doel:
+                    shutil.copyfileobj(bron, doel)
+        return True
+        #
+        # END OF local function: do_folder()
+        #
+
+    #
+    # START
+    #
     global zipfile
-
-    with zipfile.ZipFile(FILENAME,'r') as zipfile:
+    with zipfile.ZipFile(filename,'r') as zipfile:
 
         # Zoek het manifest en lees de XML tree
         for x in zipfile.namelist():
@@ -201,9 +209,13 @@ if __name__ == '__main__':
         main = organisations.getchildren()[0]
         rootfolder = main.getchildren()
 
-        curpath = Path('.') # high level Path object (windows/posix/osx)
-        rootpath = curpath  # extract in current dir
+        rootpath = Path(destination_path) # high level Path object (windows/posix/osx)
 
         # rootfolder is een lijst[] met items
         # loop deze (recursief door. Maak (sub)mappen en extract bestanden)
         do_folder(rootfolder, rootpath)
+
+        return True
+
+if __name__ == '__main__':
+    extract_imsfile(FILENAME, '.')
