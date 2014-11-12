@@ -37,9 +37,12 @@ def removeDisallowedFilenameChars(filename):
 #
 # Just extracting from zipfile does not work. Workaround:
 #
+# input: name_in_zip (UTF-8 encoded string)
+# path = Path() object
+# name_on_disk: output filename (string)
 def extract_from_zip_and_write(name_in_zip, path, name_on_disk):
     try:
-        bron = zipfile.open(name_in_zip)
+        bron = zipfile.open(name_in_zip.encode('cp437')) # zip uses cp437 encoding
     except KeyError:
         failed_files.append(name_in_zip)
         return False
@@ -48,7 +51,6 @@ def extract_from_zip_and_write(name_in_zip, path, name_on_disk):
     with bron, doel:
         shutil.copyfileobj(bron, doel)
     return True
-
 
 
 def extract_imsfile(filename, destination_path):
