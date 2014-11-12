@@ -52,7 +52,10 @@ def extract_from_zip_and_write(name_in_zip, path, name_on_disk):
 
 
 def extract_imsfile(filename, destination_path):
-    global manifest, resdic, failed_files
+
+    #global manifest  #development
+    global resdict, failed_files
+
     # dictionary to store <resource> information (location of files in zipfile)
     resdict = {}
     failed_files = []
@@ -81,7 +84,6 @@ def extract_imsfile(filename, destination_path):
         files = folder[1:]  # files is list of files and subfolders in this folder
 
         for f in files:
-    #        print 'file: ',f.attrib
             # is this file a folder?
             # if it is the identifier contains '_folder_'
             id = f.get('identifier')
