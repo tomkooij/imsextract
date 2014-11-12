@@ -34,12 +34,28 @@ def removeDisallowedFilenameChars(filename):
     cleanedFilename = unicodedata.normalize('NFKD', filename).encode('ASCII', 'ignore')
     return ''.join(c for c in cleanedFilename if c in validFilenameChars)
 
+#
+# Just extracting from zipfile does not work. Workaround:
+#
+def extract_from_zip_and_write(name_in_zip, path, name_on_disk):
+    try:
+        bron = zipfile.open(name_in_zip)
+    except KeyError:
+        failed_files.append(name_in_zip)
+        return False
+
+    doel = open(str(path / name_on_disk), "wb")
+    with bron, doel:
+        shutil.copyfileobj(bron, doel)
+    return True
+
+
 
 def extract_imsfile(filename, destination_path):
-
+    global manifest, resdic, failed_files
     # dictionary to store <resource> information (location of files in zipfile)
     resdict = {}
-
+    failed_files = []
 
     #
     # walk through xml tree "folder"
@@ -78,15 +94,9 @@ def extract_imsfile(filename, destination_path):
                 # identifiers zien er zo uit: 'I_rYTieTdHa_folderfile_42508'
                 # we hebben alleen het getal nodig
                 idval = id.split('_folderfile_')[1]
-                bestandsnaam = resdict[idval].split('/')[1]
+                bestandsnaam = removeDisallowedFilenameChars(unicode(resdict[idval].split('/')[1]))
                 print 'extracting file: ',bestandsnaam
-                # WERKT NIET submappen blijven ervoor
-                # zipfile.extract(resdict[idval],str(new_path)) # extract file in current dir
-                # Brute force, open file, write file:
-                bron = zipfile.open(resdict[idval])
-                doel = open(str(new_path / bestandsnaam), "wb")
-                with bron, doel:
-                    shutil.copyfileobj(bron, doel)
+                extract_from_zip_and_write(resdict[idval], new_path, bestandsnaam)
 
             if '_weblink_' in id:              # item is weblink. Extract
                 idval = id.split('_weblink_')[1]
@@ -110,13 +120,7 @@ def extract_imsfile(filename, destination_path):
                 title = f[0].text # get title from <items>
                 bestandsnaam = removeDisallowedFilenameChars(unicode(title+'.html'))
                 print 'extracting note: ',bestandsnaam
-
-                # Brute force, open file, write file:
-                bron = zipfile.open(resdict[idval])
-                doel = open(str(new_path / bestandsnaam), "wb")
-                with bron, doel:
-                    shutil.copyfileobj(bron, doel)
-
+                extract_from_zip_and_write(resdict[idval], new_path, bestandsnaam)
 
             if '_picture_' in id:              # item is image. Extract
 
@@ -141,12 +145,8 @@ def extract_imsfile(filename, destination_path):
 
                 bestandsnaam_in_zip = folder_in_zip + '/' + imagefilename
 
-                # Brute force, open file, write file:
-                bron = zipfile.open(bestandsnaam_in_zip)
-                doel = open(str(new_path / bestandsnaam), "wb")
-                with bron, doel:
-                    shutil.copyfileobj(bron, doel)
-        return True
+                extract_from_zip_and_write(bestandsnaam_in_zip, new_path, bestandsnaam)
+
         #
         # END OF local function: do_folder()
         #
@@ -173,7 +173,6 @@ def extract_imsfile(filename, destination_path):
             # de xml tags worden voorafgenaam door {http://www.w3... blaat}
             # haal die eerst op:
             namespace = root.tag[1:].split("}")[0] #extract namespace from xml file
-
             #
             # Maak lijsten van XML items. Gebruikt voor development
             # Alleen resources (<resources>) is nodig in de rest van de code
@@ -212,11 +211,19 @@ def extract_imsfile(filename, destination_path):
             # rootfolder is een lijst[] met items
             # loop deze (recursief door. Maak (sub)mappen en extract bestanden)
             do_folder(rootfolder, destpath)
-            return True
+
+            if len(failed_files)==0:
+                return True
+            else:
+                print "\n\n ERRORS:"
+                for file in failed_files:
+                    print "mislukt: ", file
+                return False
 
     except IOError:
         print('IOError: File not found?')
-    return False
+
+
 
 def print_usage_and_exit():
     print 'Usage: imsextract inputfile <outputpath>'
