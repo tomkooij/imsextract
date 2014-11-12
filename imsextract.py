@@ -12,9 +12,14 @@ zie: http://github.com/tomkooij/imsextract
 
 OPMERKINGEN:
 - Alleen getest op Windows 7. Zou ook onder MAC OSX en POSIX moeten werken
-- Er is GEEN ENKELE foutcontrole
 - Mapnamen kunnen langer worden dan Windows toestaat. Gebruik vanuit C:\TEMP (een map met een kort eigen path)
 
+Special characters in filenames should be supported, explaination:
+
+imsmanifest.xml is encoded in UTF-8
+filenames in zipfiles are encoded in CP437
+It's Learning store filenames in imsmanifest.xml in CP437.
+They are converted back to CP437 in extract_file_and_write()
 
 """
 
