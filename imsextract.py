@@ -18,8 +18,9 @@ Special characters in filenames should be supported, explaination:
 
 imsmanifest.xml is encoded in UTF-8
 filenames in zipfiles are encoded in CP437
-It's Learning store filenames in imsmanifest.xml in CP437.
-They are converted back to CP437 in extract_file_and_write()
+It's Learning stores filenames in imsmanifest.xml in CP437.
+These are converted to unicode by the Elementree xml parser
+Finally they are converted back to CP437 in extract_file_and_write()
 
 """
 
