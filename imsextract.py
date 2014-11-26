@@ -79,8 +79,15 @@ def extract_imsfile(filename, destination_path):
     def do_folder(folder, path):
 
         #print "DEBUG: entering do_folder(). old path=", path
+        #
+        # HACK! zorg dat de nieuwe folder namen maximaal 20 chars zijn
+        # Dit moet natuurlijk wat langer worden TEST
+        #
         title = removeDisallowedFilenameChars(unicode(folder[0].text))
+
         new_path = path / title # add subfolder to path
+        print 'DEBUG: path length: ',len(str(new_path))
+
         if not new_path.exists():
             print 'creating directory: ', str(new_path)
             new_path.mkdir() # create directory
@@ -232,6 +239,7 @@ def extract_imsfile(filename, destination_path):
 
     except IOError:
         print('IOError: File not found?')
+        print('Als dit tijdens het uitpakken gebeurt: Uitpakken gedeeltelijk mislukt')
 
 
 
