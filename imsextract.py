@@ -223,6 +223,7 @@ def extract_imsfile(filename, destination_path):
             do_folder(rootfolder, destpath)
 
             if len(failed_files)==0:
+                print "Klaar: Alle bestanden uitgepakt!"
                 return True
             else:
                 print "\n\n ERRORS:"
