@@ -273,10 +273,22 @@ if __name__ == '__main__':
     if len(arg)==1:
         print_usage_and_exit()
 
-    if (arg[1][0] == '-v'):
-        verbose = TRUE;
 
-    if len(arg)>=2:
+    if (arg[1] == '-v'):
+        verbose = TRUE;
+        filename = arg[2]
+        print "Verbose mode\n Extracting:", filename
+        # path already at default, set if specified at command line:
+        if len(arg)==4:
+            path = Path(str(arg[3]))
+            if not path.exists():
+                print 'creating directory: ', str(path)
+                path.mkdir() # create directory
+        #
+        # DO IT!
+        #
+        extract_imsfile(filename, path)
+    elif len(arg)>=2:
         filename = str(arg[1])
         # path already at default, set if specified at command line:
         if len(arg)==3:
