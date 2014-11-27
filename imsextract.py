@@ -33,6 +33,10 @@ import shutil
 import unicodedata
 import string
 
+
+TRUE = 1
+FALSE = 0
+
 # remove illegal chars from filename/dirname
 # source: http://stackoverflow.com/questions/295135/turn-a-string-into-a-valid-filename-in-python
 validFilenameChars = "-_.() %s%s" % (string.ascii_letters, string.digits)
@@ -82,10 +86,12 @@ def extract_imsfile(filename, destination_path):
         title = removeDisallowedFilenameChars(unicode(folder[0].text))
         new_path = path / title # add subfolder to path
         if not new_path.exists():
-            print 'creating directory: ', str(new_path)
+            if (verbose):
+                print 'creating directory: ', str(new_path)
             new_path.mkdir() # create directory
         else:
-            print 'chdir into existing directory:', str(new_path)
+            if (verbose):
+                print 'chdir into existing directory:', str(new_path)
 
         new_path.resolve() # change dir
 
@@ -105,7 +111,8 @@ def extract_imsfile(filename, destination_path):
                 # we hebben alleen het getal nodig
                 idval = id.split('_folderfile_')[1]
                 bestandsnaam = removeDisallowedFilenameChars(unicode(resdict[idval].split('/')[1]))
-                print 'extracting file: ',bestandsnaam
+                if (verbose):
+                    print 'extracting file: ',bestandsnaam
                 extract_from_zip_and_write(resdict[idval], new_path, bestandsnaam)
 
             if '_weblink_' in id:              # item is weblink. Extract
@@ -115,21 +122,27 @@ def extract_imsfile(filename, destination_path):
                 title = f[0].text # get title from <items>
 
                 bestandsnaam = removeDisallowedFilenameChars(unicode(title+'.url'))
-                print 'extracting weblink: ',bestandsnaam
+                if (verbose):
+                    print 'extracting weblink: ',bestandsnaam
 
                 # .url file just a txt file with [Internet Shortcut]. Clickable in windows
-                doel = open(str(new_path / bestandsnaam), "wb")
-                doel.write('[InternetShortcut]\nURL=')
-                doel.write(url)
-                doel.write('\n')
-                doel.close()
+                try:
+                    doel = open(str(new_path / bestandsnaam), "wb")
+                    doel.write('[InternetShortcut]\nURL=')
+                    doel.write(url)
+                    doel.write('\n')
+                    doel.close()
+                except IOError:
+                    print "Cannot create:", str(new_path / bestandsnaam)
+                    failed_files.append(str(new_path/ bestandsnaam))
 
             if '_note_' in id:              # item is note. Extract html contents
                 idval = id.split('_note_')[1]
 
                 title = f[0].text # get title from <items>
                 bestandsnaam = removeDisallowedFilenameChars(unicode(title+'.html'))
-                print 'extracting note: ',bestandsnaam
+                if (verbose):
+                    print 'extracting note: ',bestandsnaam
                 extract_from_zip_and_write(resdict[idval], new_path, bestandsnaam)
 
             if '_picture_' in id:              # item is image. Extract
@@ -138,7 +151,8 @@ def extract_imsfile(filename, destination_path):
                 bestandsnaam = resdict[idval][1].split('/')[1]
                 folder_in_zip = resdict[idval][0].split('/')[0]
 
-                print 'extracting image: ',bestandsnaam
+                if (verbose):
+                    print 'extracting image: ',bestandsnaam
 
                 # The correct imagefile is NOT in the <rescources> dict.
                 #  Images are renamed and an .html container is used
@@ -237,12 +251,16 @@ def extract_imsfile(filename, destination_path):
 
 
 def print_usage_and_exit():
-    print 'Usage: imsextract inputfile <outputpath>'
+    print 'Usage: imsextract [-v] inputfile <outputpath>'
     print 'examples:\nimsextract export.zip    - extract to current folder'
     print 'imsextract export.zip D:\yourfolder  - extract to specified folder'
+    print 'use -v to print verbose output'
     sys.exit(0)
 
 if __name__ == '__main__':
+
+    global verbose
+    verbose = FALSE # do not print verbose output
 
     print 'imsextract - Extract Its Learning IMSContent SCORM package'
     print 'Get the source at: http://github.com/tomkooij/imsextract\n'
@@ -255,8 +273,8 @@ if __name__ == '__main__':
     if len(arg)==1:
         print_usage_and_exit()
 
-    if (arg[1][0] == '-'):
-        print_usage_and_exit()
+    if (arg[1][0] == '-v'):
+        verbose = TRUE;
 
     if len(arg)>=2:
         filename = str(arg[1])
